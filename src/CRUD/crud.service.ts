@@ -1,17 +1,27 @@
 import { Injectable } from '@nestjs/common';
+import { PrismaService } from 'src/backend/prisma.service';
 import { User } from './dto/create-user.dto';
 
 @Injectable()
 export class CRUDService {
-  private readonly users: User[] = []; // Alterado para User[]
-
-  create(u: User) {
+  //private readonly users: User[] = []; // Alterado para User[]
+  db = new PrismaService();
+  async create(u: User) {
     console.log('Creating user:', u);
-    this.users.push(u);
+    await this.db.user.create({
+      data: {
+        name: u.name,
+        email: u.email,
+        telefone: u.telefone,
+      },
+    });
+    //this.users.push(u);
   }
 
-  getUsers(): User[] {
-    console.log('Returning users:', this.users);
-    return this.users;
+  async getUsers(): Promise<User[]> {
+    var u: User[] = await this.db.user.findMany();
+
+    console.log('Returning users:', u);
+    return u;
   }
 }

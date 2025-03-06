@@ -3,11 +3,11 @@ import { User } from './dto/create-user.dto';
 import { CRUDService } from './crud.service';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 
-@Controller('crud')
+@Controller('crud-user')
 export class CRUDController {
   constructor(private readonly CRUDService: CRUDService) {}
 
-  @Post('pUser')
+  @Post('cUser')
   @ApiOperation({ summary: "Criar um novo usuario." })
   @ApiResponse({ status: 201, description: "Usuario adicionado com sucesso!",type: User })
   @ApiResponse({ status: 400, description: "Erro na requisição!" })
