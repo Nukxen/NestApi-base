@@ -14,7 +14,7 @@ export class CRUDController {
 
   @Get('gAll')
   @HttpCode(200)
-  async getUsers(): Promise<{}> {
+  getUsers(): {} {
     return this.CRUDService.getUsers();
   }
 }
