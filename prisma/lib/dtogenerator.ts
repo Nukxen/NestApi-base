@@ -3,9 +3,6 @@ import chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
 
-//console.log('__dirname:', __dirname);
-//console.log('schema:', path.resolve(__dirname, '../schema.prisma'));
-
 // === Helpers ===
 
 function mapFieldType(prismaType: string): string {
@@ -58,6 +55,15 @@ function isUUIDDefault(field: any): boolean {
     field.default.name === 'uuid'
   );
 }
+function isAutoIncrementId(field: any): boolean {
+  return (
+    field.isId &&
+    field.hasDefaultValue &&
+    field.default &&
+    typeof field.default === 'object' &&
+    field.default.name === 'autoincrement'
+  );
+}
 
 function generateEnumFiles(enums, outputDir: string) {
   fs.mkdirSync(outputDir, { recursive: true });
@@ -75,29 +81,23 @@ async function generateDTOs() {
   const schemaPath = path.resolve(__dirname, '../schema.prisma');
   const schema = fs.readFileSync(schemaPath, 'utf8');
   const dmmf = await getDMMF({ datamodel: schema });
-
   const enumsMap = Object.fromEntries(
     dmmf.datamodel.enums.map((e) => [e.name, e.values.map((v) => v.name)]),
   );
-
   // Gera arquivos de enum
   generateEnumFiles(
     dmmf.datamodel.enums,
     path.resolve(__dirname, 'dtos/enums'),
   );
-
   dmmf.datamodel.models.forEach((model) => {
     const dtoLines: string[] = [];
     const importLines = new Set<string>([
       `import { ApiProperty } from '@nestjs/swagger';`,
       `import { IsString, IsOptional, IsNumber, IsBoolean, IsDate, IsUUID, IsJSON } from 'class-validator';`,
     ]);
-
     // Importa enums usados
     const usedEnums = new Set<string>();
-
-    dtoLines.push(`export class ${model.name}Create {`);
-
+    dtoLines.push(`export class Create${model.name}Dto {`);
     model.fields.forEach((field) => {
       if (field.relationName) return;
 
@@ -133,6 +133,7 @@ async function generateDTOs() {
       const type = mapFieldType(field.type);
       const isUuid = isUUIDDefault(field);
       const isJson = field.type == 'Json';
+      const isAutoIncrement = isAutoIncrementId(field);
 
       if (isEnum) {
         usedEnums.add(field.type);
@@ -143,13 +144,16 @@ async function generateDTOs() {
       }
 
       const validator = getValidatorDecorator(field.type, isEnum, field.type);
-      const optionalDecorator = isOptional ? '@IsOptional()' : '';
+      const optionalDecorator =
+        isOptional || isUuid || isAutoIncrement ? '@IsOptional()' : '';
 
-      let apiLine = `  @ApiProperty({ title: '${field.name}',`;
+      let apiLine = `  @ApiProperty({ title: '${field.name.substring(0, 1).toUpperCase() + field.name.substring(1)}',`;
       if (isEnum) {
         apiLine += ` enum: ${field.type}, enumName: '${field.type}'`;
       } else if (isUuid) {
         apiLine += ` type: 'string', format: 'uuid', readOnly: true`;
+      } else if (isAutoIncrement) {
+        apiLine += ` type: ${type === 'Date' ? type : `'${type}'`}, readOnly: true`;
       } else if (isJson) {
         // deixa o default
       } else {
@@ -165,23 +169,19 @@ async function generateDTOs() {
         ``,
       );
     });
-
     dtoLines.push(`}`);
-
     dtoLines.push(
       ``,
-      `export class ${model.name}Update implements Partial<${model.name}Create> {}`,
+      `export class Update${model.name}Dto implements Partial<Create${model.name}Dto> {}`,
     );
-
     // DTO de Retorno
-    dtoLines.push(``, `export class ${model.name}Return {`);
-
+    dtoLines.push(``, `export class Return${model.name}Dto {`);
     model.fields.forEach((field) => {
       const isRelation = !!field.relationName;
 
       if (isRelation) {
         const isArray = field.isList;
-        const relatedDto = `${field.type}Return`;
+        const relatedDto = `Return${field.type}Dto`;
         const tsType = isArray ? `${relatedDto}[]` : `${relatedDto} | null`;
 
         importLines.add(`import { ${relatedDto} } from './${field.type}.dto';`);
@@ -198,6 +198,7 @@ async function generateDTOs() {
         const type = mapFieldType(field.type);
         const isUuid = isUUIDDefault(field);
         const isJson = field.type === 'Json';
+        const isAutoIncrement = isAutoIncrementId(field);
 
         if (isEnum) {
           usedEnums.add(field.type);
@@ -208,13 +209,16 @@ async function generateDTOs() {
         }
 
         const validator = getValidatorDecorator(field.type, isEnum, field.type);
-        const optionalDecorator = isOptional ? '@IsOptional()' : '';
+        const optionalDecorator =
+          isOptional || isUuid || isAutoIncrement ? '@IsOptional()' : '';
 
-        let apiLine = `  @ApiProperty({ title: '${field.name}',`;
+        let apiLine = `  @ApiProperty({ title: '${field.name.substring(0, 1).toUpperCase() + field.name.substring(1)}',`;
         if (isEnum) {
           apiLine += ` enum: ${field.type}, enumName: '${field.type}'`;
         } else if (isUuid) {
           apiLine += ` type: 'string', format: 'uuid', readOnly: true`;
+        } else if (isAutoIncrement) {
+          apiLine += ` type: ${type === 'Date' ? type : `'${type}'`}, readOnly: true`;
         } else if (isJson) {
         } else {
           apiLine += ` type: ${type === 'Date' ? type : `'${type}'`}`;
@@ -230,23 +234,20 @@ async function generateDTOs() {
         );
       }
     });
-
     dtoLines.push(`}`);
-
     const fullOutput = Array.from(importLines)
       .concat(['', ...dtoLines])
       .join('\n');
     const outputPath = path.resolve(__dirname, 'dtos', `${model.name}.dto.ts`);
-
     fs.mkdirSync(path.dirname(outputPath), { recursive: true });
     fs.writeFileSync(outputPath, fullOutput);
   });
 }
 
-console.log(chalk.bgCyan('[PROCESS] Inciando geração de DTOs...'));
+console.log(chalk.cyan('[PROCESS] Inciando geração de DTOs...'));
 try {
-  generateDTOs();
   console.log(chalk.green('[OK] DTO gerado com sucesso'));
+  generateDTOs();
 } catch (e) {
   console.error('Erro ao gerar DTOs:', e);
 }

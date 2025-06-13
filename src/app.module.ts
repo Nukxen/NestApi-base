@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { CRUDModule } from './CRUD/crud.module';
+import { AutoTesterRouteModule } from './auto-tester-route/auto-tester-route.module';
+
+
 
 @Module({
-  imports: [CRUDModule],
+  imports: [AutoTesterRouteModule],
   controllers: [AppController],
   providers: [AppService],
 })

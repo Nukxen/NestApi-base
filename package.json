@@ -18,7 +18,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "dbsave": "npx prisma migrate dev --name init",
-    "generate:dto": "npx prisma migrate dev --name init && npx ts-node prisma/lib/dtogenerator.ts"
+    "gen:dto": "npx prisma migrate dev --name init && npx ts-node prisma/lib/dtogenerator.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
