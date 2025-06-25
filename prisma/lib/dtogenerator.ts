@@ -4,7 +4,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 // === Helpers ===
-
 function mapFieldType(prismaType: string): string {
   switch (prismaType) {
     case 'String':
@@ -244,10 +243,13 @@ async function generateDTOs() {
   });
 }
 
-console.log(chalk.cyan('[PROCESS] Inciando geração de DTOs...'));
-try {
-  console.log(chalk.green('[OK] DTO gerado com sucesso'));
-  generateDTOs();
-} catch (e) {
-  console.error('Erro ao gerar DTOs:', e);
-}
+(async () => {
+  console.log(chalk.cyan('[PROCESS] Iniciando geração de DTOs...'));
+  try {
+    await generateDTOs();
+    console.log(chalk.green('[PROCESS] DTO gerado com sucesso'));
+  } catch (e) {
+    console.error('Erro ao gerar DTOs:', e);
+  }
+})();
+

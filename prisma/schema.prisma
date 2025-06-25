@@ -13,9 +13,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User{
-  id Int @id @default(autoincrement())
-  name String 
-  email String @unique
-  telefone String?  
+model User {
+  id         Int        @id @default(autoincrement())
+  name       String
+  email      String     @unique
+  telefone   String?
+  acessLevel AcessLevel @default(USER)
+}
+
+enum AcessLevel {
+  ADMIN
+  USER
 }
