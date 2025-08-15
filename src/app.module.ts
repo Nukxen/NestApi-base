@@ -1,12 +1,10 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { AutoTesterRouteModule } from './auto-tester-route/auto-tester-route.module';
-
-
+import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
-  imports: [AutoTesterRouteModule],
+  imports: [PrismaModule],
   controllers: [AppController],
   providers: [AppService],
 })

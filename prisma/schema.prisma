@@ -21,6 +21,7 @@ model User {
   acessLevel AcessLevel @default(USER)
 }
 
+
 enum AcessLevel {
   ADMIN
   USER
