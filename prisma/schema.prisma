@@ -1,28 +1,336 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")
+  ///shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
 }
 
-model User {
-  id         Int        @id @default(autoincrement())
-  name       String
-  email      String     @unique
-  telefone   String?
-  acessLevel AcessLevel @default(USER)
+model MinIOanexo {
+  id_minio   String     @id @default(uuid())
+  uploadName String
+  hashFile   String
+  mimeType   String
+  etapa      enum_etapa
+
+  createdAt DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime? @db.Timestamptz(3)
+  deletedAt DateTime? @db.Timestamptz(3)
+
+  evidenciaBefore Evidencias? @relation("Antes")
+  evidenciaAfter  Evidencias? @relation("Depois")
+  Trabalho        Trabalho    @relation(fields: [fk_trabalho], references: [id_trabalho])
+  fk_trabalho     String
 }
 
+model Trabalho {
+  ///Informações Gerais
+  id_trabalho                 String              @id @default(uuid())
+  titulo_trabalho             String
+  data_inicio                 DateTime
+  fk_responsavel              String              @db.VarChar(255)
+  area_aplicacao              String              @db.VarChar(255)
+  numero_kaizen               Int?
+  gerente_area_impactada      String?             @db.VarChar(255)
+  email_gerente_area          String?             @db.VarChar(255)
+  objetivo                    String?
+  tipo_problema               enum_tipo_problema?
+  resultado_validacao         Boolean?            @default(false)
+  ultimo_comentario_validacao String?
+  status                      enum_status?        @default(EM_ANDAMENTO)
+  data_conclusao              DateTime?
+  iplan_key                   String? // Proveniente do DB do iPlan
+  MiniIOAnexo                 MinIOanexo[]
+  updated_at                  DateTime            @updatedAt
+  updated_by                  String?
+  deleted_at                  DateTime?
+  deleted_by                  String?
+  //extra
+  hasActionPlain              Boolean?            @default(false)
 
-enum AcessLevel {
-  ADMIN
-  USER
+  ///Problema
+  tem_5w1h            Boolean? @default(false)
+  problema_5w1h_what  String?
+  problema_5w1h_who   String?
+  problema_5w1h_where String?
+  problema_5w1h_when  String?
+  problema_5w1h_how   String?
+  problema_5w1h_which String?
+  descricao_problema  String? //SEMPRE OBRIGATÓRIO PARA CONCLUIR
+
+  ///Estratificação
+  maquina_patrimonio       String?
+  inicio_parada            DateTime?
+  fim_parada               DateTime?
+  ordem_manutencao         String?
+  normas_associadas        String?
+  evento_ambiental         enum_evento_ambiental?
+  descricao_estratificacao String?
+  fluxograma               String?
+  pareto_unidade           String?                @db.VarChar(50)
+
+  Pareto          Pareto[]
+  fk_pareto       String?
+  Avaliacao5G     Avaliacao5G[]
+  DadosDoProcesso DadosDoProcesso[]
+
+  ///Analise de causa
+  twttp_herca                String?
+  analise_nvaa               Boolean?             @default(false)
+  descricao_analise_de_causa String?
+  mapeado_perigos_riscos     Boolean?             @default(false)
+  perigos_riscos_antes       enum_perigos_riscos?
+  perigos_riscos_depois      enum_perigos_riscos?
+  causa_raiz_5porques        String?              @db.VarChar(255)
+  causa_raiz_ishikawa        String?              @db.VarChar(255)
+  IshikawaEspinha            IshikawaEspinha[] //Um trabalho pode ter varios Ishikawas
+  PorquesCausa               PorquesCausa[]
+  Brainstorm                 Brainstorm[]
+
+  ///Tipologia de falha
+  projeto_falha              Boolean? @default(false)
+  projeto_falta              Boolean? @default(false)
+  externo_utilidades         Boolean? @default(false)
+  externo_materia_prima      Boolean? @default(false)
+  externo_sobressalente_def  Boolean? @default(false)
+  externo_vibracao           Boolean? @default(false)
+  externo_temperatura        Boolean? @default(false)
+  manut_lubrific             Boolean? @default(false)
+  manut_ativid_nao_realizada Boolean? @default(false)
+  manut_deterioracao         Boolean? @default(false)
+  cond_basica_procedimento   Boolean? @default(false)
+  cond_basica_vazamento      Boolean? @default(false)
+  cond_basica_reaperto       Boolean? @default(false)
+  cond_basica_lubrificacao   Boolean? @default(false)
+  cond_basica_limpeza        Boolean? @default(false)
+  cond_funcional_ajustes     Boolean? @default(false)
+  cond_funcional_pressao     Boolean? @default(false)
+  cond_funcional_temperatura Boolean? @default(false)
+  cond_funcional_velocidade  Boolean? @default(false)
+  descuido_producao          Boolean? @default(false)
+  descuido_manutencao        Boolean? @default(false)
+
+  ///Padronização
+  norma                   String? @db.VarChar(255)
+  tlt                     String? @db.VarChar(255)
+  sop_paa                 String? @db.VarChar(255)
+  progama_manut_periodica String? @db.VarChar(255)
+  cfc                     String? @db.VarChar(255)
+  //poka_yoke               String? @db.VarChar(255)
+  revisao_roteiro         String? @db.VarChar(255)
+  outros                  String?
+
+  ///Resultados
+  reducao_nivel_significancia Int?
+  outros_ganhos               String?
+  investimentos               Float?
+  despesas                    Float?
+  ganhos_potencial            Float?
+  ganhos_real                 Float?
+  bc                          Float?
+
+  ///Expansão
+  possibilidade_expansao Boolean? @default(false)
+  locais_expansao        String[]
+
+  ///Evidências
+  Evidencias Evidencias[] //Um trabalho pode ter varias Evidencias
+  Nodes      Nodes[]
+  Classes    Classes[]
+}
+
+model Pareto {
+  id_pareto    String    @id @default(uuid())
+  causa        String?
+  valor        Float?
+  trabalho_ref Trabalho? @relation(fields: [fk_trabalho], references: [id_trabalho])
+  fk_trabalho  String?
+}
+
+model Avaliacao5G {
+  id_avaliacao_5g         String                 @id @default(uuid())
+  options                 enum_analise_55_option
+  analise_4m              enum_analise_4m
+  especificacao           String
+  verificado              String
+  necessita_restauracao   Boolean?               @default(false)
+  como_restaurar          String?
+  responsavel_restauracao String?
+  prazo                   DateTime?
+  status                  String?                @db.VarChar(50) //Enum status avaliação = do iplan
+  solucao_eficaz          Boolean?               @default(false)
+  trabalho_ref            Trabalho               @relation(fields: [fk_trabalho], references: [id_trabalho])
+  fk_trabalho             String
+
+  @@map("Avaliacao5G")
+}
+
+model PorquesCausa {
+  id_porques_causa String  @id @default(uuid())
+  causa            String? @db.VarChar(255)
+
+  Trabalho    Trabalho @relation(fields: [fk_trabalho], references: [id_trabalho])
+  fk_trabalho String
+
+  order_row Int
+
+  Porques Porques[]
+}
+
+model Porques {
+  id_porques String  @id @default(uuid())
+  causa      String? @db.VarChar(255)
+
+  order_col Int
+
+  PorquesCausa     PorquesCausa @relation(fields: [fk_porques_causa], references: [id_porques_causa])
+  fk_porques_causa String
+}
+
+model IshikawaEspinha {
+  id_espinha   String          @id @default(uuid())
+  espinha      String?         @db.VarChar(255)
+  trabalho_ref Trabalho?       @relation(fields: [fk_trabalho], references: [id_trabalho])
+  fk_trabalho  String
+  deleted_at   DateTime?
+  causas       IshikawaCausa[]
+}
+
+model IshikawaCausa {
+  id_causa       String           @id @default(uuid())
+  causa          String
+  fk_espinha_ref IshikawaEspinha? @relation(fields: [fk_espinha], references: [id_espinha])
+  fk_espinha     String
+}
+
+model Evidencias {
+  id_evidencia        String      @id @default(uuid())
+  comentario          String?
+  MinIOanexo_Antes    MinIOanexo? @relation(name: "Antes", fields: [fk_evidencia_antes], references: [id_minio])
+  fk_evidencia_antes  String?     @unique
+  MinIOanexo_Depois   MinIOanexo? @relation(name: "Depois", fields: [fk_evidencia_depois], references: [id_minio])
+  fk_evidencia_depois String?     @unique
+  Trabalho            Trabalho    @relation(fields: [fk_trabalho], references: [id_trabalho])
+  fk_trabalho         String
+}
+
+model DadosDoProcesso {
+  id          String                  @id @default(uuid())
+  Trabalho    Trabalho                @relation(fields: [fk_trabalho], references: [id_trabalho])
+  fk_trabalho String
+  dados       enum_dados_do_processo?
+  atual       String?
+  proposto    String?
+  diferenca   String?
+  unidade     String?
+}
+
+model Brainstorm {
+  id           String                 @id @default(uuid())
+  Trabalho     Trabalho               @relation(fields: [fk_trabalho], references: [id_trabalho])
+  fk_trabalho  String
+  macro_topico String
+  problema     String
+  solucao      String
+  status       enum_status_brainstorm
+}
+
+model Nodes {
+  id          String   @id @default(uuid())
+  data        Json
+  Trabalho    Trabalho @relation(fields: [fk_trabalho], references: [id_trabalho])
+  fk_trabalho String   @map("fkTrabalho")
+}
+
+model Classes {
+  id          String   @id @default(uuid())
+  data        Json
+  Trabalho    Trabalho @relation(fields: [fk_trabalho], references: [id_trabalho])
+  fk_trabalho String   @map("fkTrabalho")
+}
+
+///--------
+enum enum_classificacao {
+  FATOR_DE_TRABALHO
+  COMPORTAMENTO_DE_RISCO
+}
+
+enum enum_analise_55_option {
+  LIMPEZA
+  INSTRUMENTOS
+  DOCUMENTACAO
+  NORMA_TECNICA
+  CONDICOES
+  CONHECIMENTO_E_HABILIDADES
+  OPERADOR
+  TRATAMENTO
+  FERRAMENTAS
+}
+
+enum enum_analise_4m {
+  MAQUINA
+  METODO
+  MAO_DE_OBRA
+  MATERIAL
+}
+
+enum enum_tipo_problema {
+  PROCESSOS
+  MANUTENCAO
+  QUALIDADE
+  SEGURANCA
+  MEIO_AMBIENTE
+  ENERGIA
+}
+
+enum enum_status {
+  EM_ANDAMENTO
+  FINALIZADO
+  AGUARDANDO_VALIDACAO
+  REPROVADO_PELO_GESTOR
+  CONCLUIDO
+  CANCELADO
+}
+
+enum enum_status_brainstorm {
+  EM_ANDAMENTO
+  CONCLUIDO
+  CANCELADO
+}
+
+enum enum_evento_ambiental {
+  CATASTROFE_AMBIENTAL
+  EMERGENCIA_AMBIENTAL
+  ACIDENTE_AMBIENTAL
+  NAO_CLASSIFICADO
+}
+
+enum enum_perigos_riscos {
+  TRI_ATN
+  TOL_IMP
+  MOD_DDF
+  SUB_RINR_AR
+}
+
+enum enum_etapa {
+  EVIDENCIAS
+  ANALISE_NVAA
+  MEMORIAL_DE_CALCULO
+  OUTROS
+}
+
+enum enum_dados_do_processo {
+  QUANTIDADE_DE_TURNOS
+  COLABORADORES_TURNO
+  CARGA_MAQUINA
+  TEMPO_DE_CIMA
+  CAPACIDADE
+  PERDA_ATACADA
+  PRODUTIVIDADE
+  TEMPO_DE_SETUP_MEDIO
+  CONSUMO_ANUAL_DE_FERRAMENTAS
+  CONSUMO_ANUAL_DE_MATERIAL
+  NVVA_MOVIMENTACAO_DESBALAN
 }
