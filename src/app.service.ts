@@ -8,7 +8,4 @@ export class AppService {
   getHello(): {} {
     return { message: 'Api Online!' };
   }
-  test(){
-    console.log(typeof this.prisma.user)
-  }
 }
